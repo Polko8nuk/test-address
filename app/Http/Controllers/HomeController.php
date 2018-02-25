@@ -39,7 +39,6 @@ class HomeController extends Controller
      */
     public function addAddress(Request $request)
     {
-
         //данные, переданные с формы
         $area = $request->input('title-area');
         $cities = $request->input('cities');
@@ -50,19 +49,21 @@ class HomeController extends Controller
         $resp = file_get_contents('https://maps.googleapis.com/maps/api/geocode/json?address='.$area.'+'. $cities.'+'. $street . '+'. $house . '&key=AIzaSyC9VO3UsnA2tpI3nLFKE5RhGXeIKZyVMQE');
         $resp = json_decode($resp);
 
-        $lat=0;
-        $lng=0;
+        if (!($resp->status == 'OK')) {
+            //отправляем запрос без поля house
+            $resp = file_get_contents('https://maps.googleapis.com/maps/api/geocode/json?address='.$area.'+'. $cities.'+'. $street . '&key=AIzaSyC9VO3UsnA2tpI3nLFKE5RhGXeIKZyVMQE');
+            $resp = json_decode($resp);
+            //если их не получили, возврат обратно с ошибкой
+            if (!($resp->status == 'OK')) {
+                Session::flash('msg', 'Введите данные');
+                return redirect()->back();
+            }
+        }
 
         //получение координат
         foreach ($resp->results as $result) {
             $lat = $result->geometry->location->lat;
             $lng = $result->geometry->location->lng;
-        }
-
-        //если их не получили, возврат обратно с ошибкой
-        if ($lat == 0 || $lng == 0) {
-            Session::flash('msg', 'Введите данные');
-            return redirect()->back();
         }
 
         //добавление нового адреса в БД
@@ -79,7 +80,6 @@ class HomeController extends Controller
         $address->save();
 
         return redirect('/');
-
     }
 
     /*
